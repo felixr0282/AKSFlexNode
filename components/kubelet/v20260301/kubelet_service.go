@@ -3,7 +3,6 @@ package v20260301
 import (
 	"bytes"
 	"context"
-	"errors"
 
 	"github.com/Azure/AKSFlexNode/components/kubelet"
 	"github.com/Azure/AKSFlexNode/pkg/config"
@@ -54,27 +53,5 @@ func (s *startKubeletServiceAction) ensureSystemdUnit(
 		return err
 	}
 
-	if unitUpdated {
-		if err := s.systemd.DaemonReload(ctx); err != nil {
-			return err
-		}
-	}
-
-	needsRestart = needsRestart || unitUpdated
-
-	status, err := s.systemd.GetUnitStatus(ctx, systemdUnitKubelet)
-	switch {
-	case errors.Is(err, systemd.ErrUnitNotFound):
-		return s.systemd.StartUnit(ctx, systemdUnitKubelet)
-	case err != nil:
-		return err
-	default:
-		if status.ActiveState != systemd.UnitActiveStateActive {
-			return s.systemd.StartUnit(ctx, systemdUnitKubelet)
-		}
-		if needsRestart {
-			return s.systemd.ReloadOrRestartUnit(ctx, systemdUnitKubelet)
-		}
-		return nil
-	}
+	return systemd.EnsureUnitRunning(ctx, s.systemd, systemdUnitKubelet, unitUpdated, needsRestart || unitUpdated)
 }
