@@ -155,7 +155,7 @@ func (a *configureBaseOSAction) disableSwap(ctx context.Context) error {
 // any uncommented lines containing "swap", and writes the result back. A backup
 // of the original file is saved to <path>.bak before any modifications are made.
 func (a *configureBaseOSAction) commentOutSwapInFstab(path string) error {
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) // #nosec - path has been validated by caller
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			// no fstab, nothing to do

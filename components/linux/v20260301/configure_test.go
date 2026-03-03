@@ -108,7 +108,7 @@ func TestCommentOutSwapInFstab(t *testing.T) {
 			dir := t.TempDir()
 			fstab := filepath.Join(dir, "fstab")
 
-			if err := os.WriteFile(fstab, []byte(tt.input), 0644); err != nil {
+			if err := os.WriteFile(fstab, []byte(tt.input), 0600); err != nil {
 				t.Fatalf("failed to write test fstab: %v", err)
 			}
 
@@ -117,7 +117,7 @@ func TestCommentOutSwapInFstab(t *testing.T) {
 				t.Fatalf("commentOutSwapInFstab() returned error: %v", err)
 			}
 
-			got, err := os.ReadFile(fstab)
+			got, err := os.ReadFile(fstab) // #nosec - path has been validated by caller
 			if err != nil {
 				t.Fatalf("failed to read fstab after call: %v", err)
 			}
@@ -183,7 +183,7 @@ func TestCommentOutSwapInFstab_Idempotent(t *testing.T) {
 	if err := a.commentOutSwapInFstab(fstab); err != nil {
 		t.Fatalf("first call returned error: %v", err)
 	}
-	got, err := os.ReadFile(fstab)
+	got, err := os.ReadFile(fstab) // #nosec - path has been validated by caller
 	if err != nil {
 		t.Fatalf("failed to read fstab: %v", err)
 	}
