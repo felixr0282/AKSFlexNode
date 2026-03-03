@@ -117,18 +117,6 @@ func (s *startContainerdServiceAction) ensureContainerdConfig(
 }
 
 func (s *startContainerdServiceAction) ensureSystemdUnit(ctx context.Context, restart bool) error {
-	_, err := s.systemd.GetUnitStatus(ctx, systemdUnitContainerd)
-	switch {
-	case errors.Is(err, systemd.ErrUnitNotFound):
-		return s.createSystemdUnit(ctx)
-	case err != nil:
-		return err
-	default:
-		return s.updateSystemdUnit(ctx, restart)
-	}
-}
-
-func (s *startContainerdServiceAction) createSystemdUnit(ctx context.Context) error {
 	b := &bytes.Buffer{}
 	if err := assetsTemplate.ExecuteTemplate(b, "containerd.service", map[string]any{
 		"ContainerdBinPath": containerdBinPath,
@@ -136,31 +124,36 @@ func (s *startContainerdServiceAction) createSystemdUnit(ctx context.Context) er
 		return err
 	}
 
-	if err := s.systemd.WriteUnitFile(ctx, systemdUnitContainerd, b.Bytes()); err != nil {
+	unitUpdated, err := s.systemd.EnsureUnitFile(ctx, systemdUnitContainerd, b.Bytes())
+	if err != nil {
 		return err
 	}
 
-	if err := s.systemd.DaemonReload(ctx); err != nil {
-		return err
-	}
-
-	if err := s.systemd.StartUnit(ctx, systemdUnitContainerd); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *startContainerdServiceAction) updateSystemdUnit(ctx context.Context, restart bool) error {
-	// TODO: should we allow updating containerd.service?
-
-	if restart {
-		if err := s.systemd.ReloadOrRestartUnit(ctx, systemdUnitContainerd); err != nil {
+	if unitUpdated {
+		if err := s.systemd.DaemonReload(ctx); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	needsRestart := restart || unitUpdated
+
+	status, err := s.systemd.GetUnitStatus(ctx, systemdUnitContainerd)
+	switch {
+	case errors.Is(err, systemd.ErrUnitNotFound):
+		// This shouldn't happen since we just ensured the unit file exists,
+		// but handle it defensively.
+		return s.systemd.StartUnit(ctx, systemdUnitContainerd)
+	case err != nil:
+		return err
+	default:
+		if status.ActiveState != systemd.UnitActiveStateActive {
+			return s.systemd.StartUnit(ctx, systemdUnitContainerd)
+		}
+		if needsRestart {
+			return s.systemd.ReloadOrRestartUnit(ctx, systemdUnitContainerd)
+		}
+		return nil
+	}
 }
 
 // ensureGPUDropInConfigs manages GPU-related containerd drop-in configs.

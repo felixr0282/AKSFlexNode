@@ -189,34 +189,29 @@ func (n *nodeJoinAction) writeKubeadmJoinConfig(
 }
 
 func (n *nodeJoinAction) ensureKubeletUnit(ctx context.Context) error {
-	_, err := n.systemd.GetUnitStatus(ctx, systemdUnitKubelet)
-	switch {
-	case errors.Is(err, systemd.ErrUnitNotFound):
-		// proceed to create
-	case err != nil:
-		return err
-	default:
-		return nil // unit already exists, nothing to do
-	}
-
-	if err := n.systemd.WriteUnitFile(
+	unitUpdated, err := n.systemd.EnsureUnitFile(
 		ctx,
 		systemdUnitKubelet,
 		systemdUnitKubeletFile,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("kubelet unit: %w", err)
 	}
-	if err := n.systemd.WriteDropInFile(
+
+	dropInUpdated, err := n.systemd.EnsureDropInFile(
 		ctx,
 		systemdUnitKubelet,
 		systemdDropInKubeadm,
 		systemdDropInKubeadmFile,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("kubelet unit drop-in: %w", err)
 	}
 
-	if err := n.systemd.DaemonReload(ctx); err != nil {
-		return fmt.Errorf("systemd daemon reload: %w", err)
+	if unitUpdated || dropInUpdated {
+		if err := n.systemd.DaemonReload(ctx); err != nil {
+			return fmt.Errorf("systemd daemon reload: %w", err)
+		}
 	}
 
 	if err := n.systemd.EnableUnit(ctx, systemdUnitKubelet); err != nil {

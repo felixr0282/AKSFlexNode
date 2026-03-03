@@ -1,6 +1,7 @@
 package systemd
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -117,46 +118,44 @@ func (d *dbusImpl) GetUnitStatus(ctx context.Context, unitName string) (dbus.Uni
 	return dbus.UnitStatus{}, ErrUnitNotFound
 }
 
-func (d *dbusImpl) writeSystemdFile(
-	path string,
-	content []byte,
-) error {
-	// current process runs with root privileges, hence we don't want to
-	// overwrite any pre-existing file to avoid unexpected consequences.
-	if err := ensureNotOverridingExistingFile(path); err != nil {
-		return err
+// ensureSystemdFile idempotently ensures the systemd file at the given path
+// has the desired content. It writes only if the content differs from what's
+// currently on disk or the file does not exist.
+// Returns true if the file was written.
+func (d *dbusImpl) ensureSystemdFile(path string, content []byte) (bool, error) {
+	currentContent, err := os.ReadFile(path) //#nosec G304 -- trusted path constructed from constant
+	switch {
+	case errors.Is(err, os.ErrNotExist):
+		// File doesn't exist, fall through to write it
+	case err != nil:
+		return false, err
+	default:
+		if bytes.Equal(bytes.TrimSpace(currentContent), bytes.TrimSpace(content)) {
+			return false, nil
+		}
 	}
 
 	if err := utilio.WriteFile(path, content, 0600); err != nil {
-		return err
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
-func (d *dbusImpl) WriteUnitFile(
+func (d *dbusImpl) EnsureUnitFile(
 	_ context.Context,
 	unitName string,
 	content []byte,
-) error {
+) (bool, error) {
 	unitPath := filepath.Join(etcSystemdSystemDir, unitName)
-
-	return d.writeSystemdFile(unitPath, content)
+	return d.ensureSystemdFile(unitPath, content)
 }
 
-func (d *dbusImpl) WriteDropInFile(
-	_ context.Context, unitName string, dropInName string, content []byte,
-) error {
-	return d.writeSystemdFile(
-		filepath.Join(etcSystemdSystemDir, unitName+".d", dropInName),
-		content,
-	)
-}
-
-func ensureNotOverridingExistingFile(path string) error {
-	_, err := os.Stat(path)
-	if !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("%q exists, refuse overriding", path)
-	}
-	return nil
+func (d *dbusImpl) EnsureDropInFile(
+	_ context.Context,
+	unitName string,
+	dropInName string,
+	content []byte,
+) (bool, error) {
+	dropInPath := filepath.Join(etcSystemdSystemDir, unitName+".d", dropInName)
+	return d.ensureSystemdFile(dropInPath, content)
 }

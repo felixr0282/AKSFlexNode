@@ -31,8 +31,15 @@ type Manager interface {
 	// Returns ErrUnitNotFound if no unit with the specified name exists.
 	GetUnitStatus(ctx context.Context, unitName string) (dbus.UnitStatus, error)
 
-	// WriteUnitFile writes a systemd unit file with the given name and content.
-	WriteUnitFile(ctx context.Context, unitName string, content []byte) error
-	// WriteDropInFile writes a systemd drop-in file for the specified unit.
-	WriteDropInFile(ctx context.Context, unitName string, dropInName string, content []byte) error
+	// EnsureUnitFile idempotently ensures the systemd unit file in /etc/systemd/system/
+	// has the desired content. It writes the file only if the content differs from
+	// what's currently on disk. This is useful when overriding a vendor-provided unit
+	// file in /lib/systemd/system/ with a custom one.
+	// Returns true if the file was written (i.e., content changed or file was created).
+	EnsureUnitFile(ctx context.Context, unitName string, content []byte) (bool, error)
+	// EnsureDropInFile idempotently ensures a systemd drop-in file for the specified unit
+	// has the desired content. It writes the file only if the content differs from
+	// what's currently on disk.
+	// Returns true if the file was written (i.e., content changed or file was created).
+	EnsureDropInFile(ctx context.Context, unitName string, dropInName string, content []byte) (bool, error)
 }
