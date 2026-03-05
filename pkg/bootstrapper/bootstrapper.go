@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/Azure/AKSFlexNode/pkg/components/arc"
-	"github.com/Azure/AKSFlexNode/pkg/components/system_configuration"
 	"github.com/Azure/AKSFlexNode/pkg/config"
 )
 
@@ -37,7 +36,6 @@ func (b *Bootstrapper) Bootstrap(ctx context.Context) (*ExecutionResult, error) 
 		arc.NewInstaller(b.logger), // Setup Arc
 
 		configureSystem.Executor("configure-os", b.componentsAPIConn),
-		system_configuration.NewInstaller(b.logger), // Configure system (early)
 
 		// Fetch serverURL and caCertData from AKS cluster admin credentials for
 		// non-bootstrap-token auth modes (Arc, SP, MI). Must run before startKubelet
