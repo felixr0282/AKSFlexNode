@@ -46,7 +46,7 @@ Actions are independent, self-contained units. A node configuration is simply a 
   { "metadata": { "type": "...DownloadCRIBinaries" },  "spec": { ... } },
   { "metadata": { "type": "...StartContainerdService" }, "spec": { ... } },
   { "metadata": { "type": "...DownloadKubeBinaries" }, "spec": { ... } },
-  { "metadata": { "type": "...KubadmNodeJoin" },       "spec": { ... } }
+  { "metadata": { "type": "...KubeadmNodeJoin" },       "spec": { ... } }
 ]
 ```
 

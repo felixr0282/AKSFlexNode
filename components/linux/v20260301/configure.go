@@ -13,14 +13,19 @@ import (
 
 	"github.com/Azure/AKSFlexNode/components/linux"
 	"github.com/Azure/AKSFlexNode/components/services/actions"
+	"github.com/Azure/AKSFlexNode/pkg/systemd"
 	"github.com/Azure/AKSFlexNode/pkg/utils/utilio"
 	"github.com/Azure/AKSFlexNode/pkg/utils/utilpb"
 )
 
-type configureBaseOSAction struct{}
+type configureBaseOSAction struct {
+	systemd systemd.Manager
+}
 
 func newConfigureBaseOSAction() (actions.Server, error) {
-	return &configureBaseOSAction{}, nil
+	return &configureBaseOSAction{
+		systemd: systemd.New(),
+	}, nil
 }
 
 var _ actions.Server = (*configureBaseOSAction)(nil)
@@ -43,6 +48,10 @@ func (a *configureBaseOSAction) ApplyAction(
 	}
 
 	if err := a.disableSwap(ctx); err != nil {
+		return nil, err
+	}
+
+	if err := a.disableSystemdResolvedCache(ctx); err != nil {
 		return nil, err
 	}
 
