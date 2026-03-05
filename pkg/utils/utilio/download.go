@@ -108,7 +108,7 @@ func cleanedTarEntryName(filename string) (string, error) {
 	return cleaned, nil
 }
 
-// DownloadToLocalFile downloads content from giving URL to local file and sets the specified permissions.
+// DownloadToLocalFile downloads content from the given URL to a local file and sets the specified permissions.
 // It limits the size of the content to 1 GiB and returns an error if the limit is exceeded.
 // It ensures that the target directory exists and handles the file writing atomically.
 //

@@ -70,12 +70,7 @@ var requiredPackages = []string{
 
 func (a *configureBaseOSAction) hasPackage(pkg string) bool {
 	_, err := exec.LookPath(pkg)
-	if err == nil {
-		// package is already installed
-		return true
-	}
-
-	return false
+	return err == nil
 }
 
 func (a *configureBaseOSAction) ensurePackages(ctx context.Context) error {
