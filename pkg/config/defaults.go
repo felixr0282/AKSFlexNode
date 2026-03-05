@@ -17,6 +17,7 @@ const (
 	DefaultNPDVersion        = "v1.35.1"
 	DefaultRunCVersion       = "1.1.12"
 	DefaultContainerdVersion = "2.0.4" // FIXME: confirm if we still want containerd 1.x
+	DefaultCrictlVersion     = "1.33.0" // FIXME: confirm correct version and download endpoint
 
 	KubeletKubeconfigPath          = "/var/lib/kubelet/kubeconfig"
 	KubeletBootstrapKubeconfigPath = "/var/lib/kubelet/bootstrap-kubeconfig"
